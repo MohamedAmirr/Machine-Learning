@@ -1,76 +1,57 @@
 import numpy as np
-import pandas as pd
+from random import random, seed
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import RandomOverSampler
-
-cols = ['fLength', 'fWidth', 'fSize', 'fConc', 'fConc1', 'fAsym', 'fM3Long', 'fM3Trans', 'fAlpha', 'fDist', 'class']
-df = pd.read_csv("magic04.data", names=cols)
-
-# Printing dataset
-
-print(df.head())
-df['class'] = (df['class'] == "g").astype(int)
-
-# Plotting dataset
-for label in cols[:-1]:
-    plt.hist(df[df["class"] == 1][label], color='blue', label='gamma', alpha=0.7, density=True)
-    plt.hist(df[df["class"] == 0][label], color='red', label='hadron', alpha=0.7, density=True)
-    plt.title(label)
-    plt.ylabel("Probability")
-    plt.xlabel(label)
-    plt.legend()
-    # plt.show()
-
-# Train,  Validation, test dataset
 
 
-train, valid, test = np.split(df.sample(frac=1), [int(0.6 * len(df)), int(0.8 * len(df))])
+def range1(arr, beg: int, end: int, dim):
+    arr1 = np.array([])
+    for i in range(beg, end):
+        u = arr[i][dim]
+        arr1 = np.append(arr1, u)
+    return arr1
 
 
-def scaleDataset(dataframe, oversample=False):
-    x = dataframe[dataframe.columns[:-1]].values
-    y = dataframe[dataframe.columns[-1]].values
-
-    scaler = StandardScaler()
-    x = scaler.fit_transform(x)
-
-    # taking more of the less class to increase the size of out dataset of that smaller class
-    # so they not match
-    if oversample:
-        ros = RandomOverSampler()
-        x, y = ros.fit_resample(x, y)
-
-    data = np.hstack((x, np.reshape(y, (-1, 1))))
-    return data, x, y
+def sigmoid(z):
+    return 1 / (1 + np.exp(z))
 
 
-# if we print len of dataset of class 0 and 1 without resampling
-# "print(len(train[train["class"]==1])), print(len(train[train["class"]==0])),
-# we will see that the number of class 1 is very different from class 0
-# so we make over sample in function scalDataset
+mean1 = [2, 2]
+cov = [[1, 0],
+       [0, 1]]
+mean2 = [-2, 6]
 
-train, xTrain, yTrain = scaleDataset(train, oversample=True)
-valid, xvalid, yvalid = scaleDataset(valid, oversample=False)
-test, xTest, yTest = scaleDataset(test, oversample=False)
+datax1 = np.random.multivariate_normal(mean1, cov, 100)
+datax2 = np.random.multivariate_normal(mean2, cov, 100)
 
-# after OverSampling to see result of reSample{
-# print(len(yTrain))
-# print(sum(yTrain == 1))
-# print(sum(yTrain == 0))
-# }
-# Before reSample
-# print(len(train[train["class"] == 1]))
-# print(len(train[train["class"] == 0]))
+data = np.concatenate((datax1, datax2))
 
-# Logistic regression
+y = np.concatenate((-1 * np.ones(shape=100, dtype=int),
+                    np.ones(shape=100, dtype=int)))
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
+x = (data - np.mean(data)) / np.std(data)  # standardization
 
-lgModel = LogisticRegression()
-lgModel = lgModel.fit(xTrain, yTrain)
+plt.scatter(range1(data, 0, 100, 0), range1(data, 0, 100, 1))
+plt.scatter(range1(data, 100, 200, 0), range1(data, 100, 200, 1))
 
-yPredi = lgModel.predict(xTest)
+# plt.show()
 
-print(classification_report(yTest, yPredi))
+seed(1)
+w = np.array([random(), random()])
+b = random()
+eta = 0.01
+iterations = 100000
+
+for i in range(iterations):
+    z = np.dot(np.transpose(w), np.transpose(x)) + b
+    phiZ = sigmoid(-z)
+
+    w = w - (eta * np.dot(phiZ - y, x) / len(x))
+    b = b - eta * np.mean(phiZ - y)
+
+xx = np.array([-5,5])
+yy = np.array([])
+for i in xx:
+    yy = np.append(yy, (-w[0] * i - b) / w[1])
+
+plt.plot(xx, yy)
+plt.show()
